@@ -21,3 +21,11 @@ done
 source env/bin/activate
 python3 cache-genetic-evidence.py
 ```
+
+## Current results
+```
+Total targets: 60608
+  Of them, protein coding: 19933
+Total diseases: 18497
+  Of them, genetic diseases: 8147
+```
