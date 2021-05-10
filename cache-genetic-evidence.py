@@ -11,7 +11,7 @@ coding_targets = (
     datasets['targets']
     .filter(pf.col('bioType') == 'protein_coding')
     .select('id')
-    .unique()
+    .distinct()
 )
 
 # Filter only genetic, familial or congenital diseases.
@@ -20,7 +20,7 @@ genetic_diseases = (
     .withColumn('therapeuticArea', pf.explode('therapeuticAreas'))
     .filter(pf.col('therapeuticArea') == 'OTAR_0000018')
     .select('id')
-    .unique()
+    .distinct()
 )
 
 print(f"""
