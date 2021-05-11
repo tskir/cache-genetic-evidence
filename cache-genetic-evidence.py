@@ -30,7 +30,7 @@ uniprot_ensembl_mapping = (
 coding_targets = (
     ot_datasets['targets']
     .filter(pf.col('bioType') == 'protein_coding')
-    .select('id')
+    .select(pf.col('id').alias('Ensembl gene ID'))
     .distinct()
 )
 
@@ -46,11 +46,17 @@ genetic_diseases = (
 # Load and process the upstream targets.
 upstream_targets = spark.read.csv(args.upstream_targets, header=True)
 
-# Map UniProt ACs into Ensembl mappings
+# Map UniProt ACs into Ensembl gene IDs.
 upstream_targets_mapped = (
     upstream_targets
     .join(uniprot_ensembl_mapping, on='UniProt', how='inner')
     .filter(pf.col('Ensembl gene ID').isNotNull())
+)
+
+# Only retain the targets which are protein coding according to OT target index.
+upstream_targets_coding = (
+    upstream_targets_mapped
+    .join(coding_targets, on='Ensembl gene ID', how='inner')
 )
 
 print(f"""
@@ -61,6 +67,8 @@ Total OT targets: {ot_datasets['targets'].count():,}
 Total OT diseases: {ot_datasets['diseases'].count():,}
   Of them, genetic diseases: {genetic_diseases.count():,}
 
-Total upstream targets: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
-  After mapping to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
+Successive filtering of upstream targets:
+- On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
+- Mapped to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
+- Present in the OT target index as protein coding: {upstream_targets_coding.select('UniProt').distinct().count():,} distinct ({upstream_targets_coding.count():,} total)
 """)

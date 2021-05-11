@@ -41,6 +41,8 @@ Total OT targets: 60,608
 Total OT diseases: 18,497
   Of them, genetic diseases: 8,147
 
-Total upstream targets: 6,742 distinct (6,742 total)
-  After mapping to Ensembl gene IDs: 6,617 distinct (7,485 total)
+Successive filtering of upstream targets:
+- On load: 6,742 distinct (6,742 total)
+- Mapped to Ensembl gene IDs: 6,617 distinct (7,485 total)
+- Present in the OT target index as protein coding: 6,385 distinct (6,439 total)
 ```
