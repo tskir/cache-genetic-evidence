@@ -19,12 +19,11 @@ args = parser.parse_args()
 # Initialise the Spark session and ingest the data.
 spark = pyspark.sql.SparkSession.builder.appName('cache_genetic_evidence').getOrCreate()
 ot_datasets = {d: spark.read.parquet(d) for d in ('targets', 'diseases', 'associationByDatatypeDirect')}
-upstream_targets = spark.read.csv(args.upstream_targets, header=True)
 uniprot_ensembl_mapping = (
     spark.read.csv(args.uniprot_ensembl_mapping, header=True, sep='\t')
-    .withColumn('Ensembl', pf.split(pf.col('Ensembl'), '; '))
-    .withColumn('Ensembl', pf.explode('Ensembl'))
-    .filter(pf.col('Ensembl').isNotNull())
+    .withColumn('Ensembl gene ID', pf.split(pf.col('Ensembl gene ID'), '; '))
+    .withColumn('Ensembl gene ID', pf.explode('Ensembl gene ID'))
+    .filter(pf.col('Ensembl gene ID').isNotNull())
 )
 
 # OT platform: Filter only protein coding targets.
@@ -44,6 +43,16 @@ genetic_diseases = (
     .distinct()
 )
 
+# Load and process the upstream targets.
+upstream_targets = spark.read.csv(args.upstream_targets, header=True)
+
+# Map UniProt ACs into Ensembl mappings
+upstream_targets_mapped = (
+    upstream_targets
+    .join(uniprot_ensembl_mapping, on='UniProt', how='inner')
+    .filter(pf.col('Ensembl gene ID').isNotNull())
+)
+
 print(f"""
 Total UniProt AC → Ensembl gene ID mappings: {uniprot_ensembl_mapping.count():,}
 
@@ -52,5 +61,6 @@ Total OT targets: {ot_datasets['targets'].count():,}
 Total OT diseases: {ot_datasets['diseases'].count():,}
   Of them, genetic diseases: {genetic_diseases.count():,}
 
-Total upstream targets: {upstream_targets.count():,}
+Total upstream targets: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
+  After mapping to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
 """)

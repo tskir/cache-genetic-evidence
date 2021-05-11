@@ -17,7 +17,7 @@ for DATASET in ${DATASETS}; do
 done
 
 # UniProt to Ensembl mapping.
-echo -e 'UniProt\tEnsembl' > uniprot_ensembl_mapping.tsv
+echo -e 'UniProt\tEnsembl gene ID' > uniprot_ensembl_mapping.tsv
 wget -qO- https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping_selected.tab.gz \
   | gzip -cd | cut -d$'\t' -f1,19 >> uniprot_ensembl_mapping.tsv
 ```
@@ -41,5 +41,6 @@ Total OT targets: 60,608
 Total OT diseases: 18,497
   Of them, genetic diseases: 8,147
 
-Total upstream targets: 6,742
+Total upstream targets: 6,742 distinct (6,742 total)
+  After mapping to Ensembl gene IDs: 6,617 distinct (7,485 total)
 ```
