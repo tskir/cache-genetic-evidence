@@ -91,21 +91,20 @@ upstream_targets_associated = (
 upstream_targets_associated.toPandas().to_csv(args.output_dataset, sep='\t', index=False)
 
 print(f"""
-### Identifier mapping statistics
+### Successive target list filtering statistics
+* On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
+* Mapped to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
+* Present in the OT target index as protein coding: {upstream_targets_coding.select('UniProt').distinct().count():,} distinct ({upstream_targets_coding.count():,} total)
+* Have good OT associations: {upstream_targets_associated.select('UniProt').distinct().count():,} distinct ({upstream_targets_associated.count():,} total)
+
+### Dataset statistics
 Total UniProt AC → Ensembl gene ID mappings: {uniprot_ensembl_mapping.count():,}
 
-### Open Targets data statistics
+Open Targets Platform data:
 * Total OT targets: {ot_datasets['targets'].count():,}
   + Of them, protein coding: {coding_targets.count():,}
 * Total OT diseases: {ot_datasets['diseases'].count():,}
   + Of them, genetic diseases: {genetic_diseases.count():,}
 * Total OT direct associations by datatype: {ot_datasets['associationByDatatypeDirect'].count():,}
   + Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): {relevant_associations.count():,}
-
-### Upstream target list filtering
-This is performed in a successive manner (one step after the other):
-* On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
-* Mapped to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
-* Present in the OT target index as protein coding: {upstream_targets_coding.select('UniProt').distinct().count():,} distinct ({upstream_targets_coding.count():,} total)
-* Have good OT associations: {upstream_targets_associated.select('UniProt').distinct().count():,} distinct ({upstream_targets_associated.count():,} total)
 """)

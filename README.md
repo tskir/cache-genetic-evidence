@@ -37,15 +37,21 @@ python3 cache-genetic-evidence.py \
 ```
 
 ## Summary of operations
-For the input target list (UniProt ACs), add associations from the Open Targets platform data which fit certain criteria.
+For the input target list (UniProt ACs), add associations from the Open Targets Platform data which fit certain criteria.
 
 Open Targets Platform associations are ingested from `associationByDatatypeDirect`. Only the following associations are considered:
-* Datatype ID = **genetic association**
+* Datatype ID is **genetic association.**
 * Datatype harmonic score >= **0.7** (current threshold, arbitrarily chosen). Filter by datatype evidence count is currently **not** applied.
 * Association target is **protein coding** according to OT target index.
-* Association disease is a **genetic disease,** as calculated by having OTAR_0000018 (“genetic, familial or congenital disease”) in the list of therapeutic areas.
+* Association disease is a **genetic disease,** as defined by having OTAR_0000018 (“genetic, familial or congenital disease”) in the list of therapeutic areas.
 
-The output is the spreadsheet obtained at input, containing only the rows for which at least one association was found. If a target has multiple associations, it will be exploded into multiple rows accordingly. For this reason, at each processing step two metrics are calculated: the total number of associations, and the number of distinct original targets.
+The output is the spreadsheet obtained at input, containing only the rows for which at least one association was found, with the following fields added: targetId, datatypeHarmonicScore, diseaseId, diseaseLabel.
+
+In certain cases, one original record will be exploded into multiple rows:
+* When one UniProt AC maps to multiple Ensembl gene IDs;
+* When there are multiple valid associations available for the single Ensembl gene ID.
+
+For this reason, at each processing step two metrics are calculated: the number of distinct original targets, and the total number of rows.
 
 ## Current results
 
@@ -53,20 +59,19 @@ This section is generated automatically by the pipeline on each run. The results
 
 ----
 
-### Identifier mapping statistics
+### Successive target list filtering statistics
+* On load: 6,742 distinct (6,742 total)
+* Mapped to Ensembl gene IDs: 6,617 distinct (7,485 total)
+* Present in the OT target index as protein coding: 6,385 distinct (6,439 total)
+* Have good OT associations: 1,968 distinct (5,992 total)
+
+### Dataset statistics
 Total UniProt AC → Ensembl gene ID mappings: 81,097
 
-### Open Targets data statistics
+Open Targets Platform data:
 * Total OT targets: 60,608
   + Of them, protein coding: 19,933
 * Total OT diseases: 18,497
   + Of them, genetic diseases: 8,147
 * Total OT direct associations by datatype: 2,653,077
   + Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): 13,697
-
-### Upstream target list filtering
-This is performed in a successive manner (one step after the other):
-* On load: 6,742 distinct (6,742 total)
-* Mapped to Ensembl gene IDs: 6,617 distinct (7,485 total)
-* Present in the OT target index as protein coding: 6,385 distinct (6,439 total)
-* Have good OT associations: 1,968 distinct (5,992 total)
