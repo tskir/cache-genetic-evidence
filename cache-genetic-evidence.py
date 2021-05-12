@@ -18,6 +18,10 @@ parser.add_argument(
     '--association-threshold', required=True, type=float, default=0.7,
     help='A minimum target-disease association score to consider relevant.'
 )
+parser.add_argument(
+    '--output-dataset', required=True,
+    help='A filename to save the processed dataset into.'
+)
 args = parser.parse_args()
 
 # Initialise the Spark session and ingest the data.
@@ -58,7 +62,7 @@ relevant_associations = (
     .join(genetic_diseases, on='diseaseId', how='inner')
     # 4. Only consider protein coding targets
     .join(coding_targets, on='targetId', how='inner')
-    .select('targetId', 'diseaseId', 'diseaseLabel')
+    .select('targetId', 'diseaseId', 'diseaseLabel', 'datatypeHarmonicScore')
 )
 
 # Load and process the upstream targets.
@@ -82,6 +86,9 @@ upstream_targets_associated = (
     upstream_targets_coding
     .join(relevant_associations, on='targetId', how='inner')
 )
+
+# Save the resulting dataset.
+upstream_targets_associated.toPandas().to_csv(args.output_dataset, sep='\t', index=False)
 
 print(f"""
 ### Identifier mapping statistics

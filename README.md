@@ -30,7 +30,8 @@ source env/bin/activate
 python3 cache-genetic-evidence.py \
   --upstream-targets CACHE_List_SAR_GWAS_DiseaseV2.csv \
   --uniprot-ensembl-mapping uniprot_ensembl_mapping.tsv \
-  --association-threshold 0.7
+  --association-threshold 0.7 \
+  --output-dataset results.tsv
 ```
 
 ## Current results
