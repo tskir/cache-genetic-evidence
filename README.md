@@ -17,7 +17,7 @@ for DATASET in ${DATASETS}; do
 done
 
 # UniProt to Ensembl mapping.
-echo -e 'UniProt\tEnsembl gene ID' > uniprot_ensembl_mapping.tsv
+echo -e 'UniProt\ttargetId' > uniprot_ensembl_mapping.tsv
 wget -qO- https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping_selected.tab.gz \
   | gzip -cd | cut -d$'\t' -f1,19 >> uniprot_ensembl_mapping.tsv
 ```
@@ -29,7 +29,8 @@ The input list of targets is generated upstream and shared over email.
 source env/bin/activate
 python3 cache-genetic-evidence.py \
   --upstream-targets CACHE_List_SAR_GWAS_DiseaseV2.csv \
-  --uniprot-ensembl-mapping uniprot_ensembl_mapping.tsv
+  --uniprot-ensembl-mapping uniprot_ensembl_mapping.tsv \
+  --association-threshold 0.7
 ```
 
 ## Current results
@@ -40,6 +41,8 @@ Total OT targets: 60,608
   Of them, protein coding: 19,933
 Total OT diseases: 18,497
   Of them, genetic diseases: 8,147
+Total OT direct associations by datatype: 2,653,077
+  Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): 13,697
 
 Successive filtering of upstream targets:
 - On load: 6,742 distinct (6,742 total)

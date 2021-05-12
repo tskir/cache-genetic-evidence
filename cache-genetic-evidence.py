@@ -14,6 +14,10 @@ parser.add_argument(
     '--uniprot-ensembl-mapping', required=True,
     help='A TSV mapping from UniProt AC to Ensembl gene ID.'
 )
+parser.add_argument(
+    '--association-threshold', required=True, type=float, default=0.7,
+    help='A minimum target-disease association score to consider relevant.'
+)
 args = parser.parse_args()
 
 # Initialise the Spark session and ingest the data.
@@ -21,16 +25,16 @@ spark = pyspark.sql.SparkSession.builder.appName('cache_genetic_evidence').getOr
 ot_datasets = {d: spark.read.parquet(d) for d in ('targets', 'diseases', 'associationByDatatypeDirect')}
 uniprot_ensembl_mapping = (
     spark.read.csv(args.uniprot_ensembl_mapping, header=True, sep='\t')
-    .withColumn('Ensembl gene ID', pf.split(pf.col('Ensembl gene ID'), '; '))
-    .withColumn('Ensembl gene ID', pf.explode('Ensembl gene ID'))
-    .filter(pf.col('Ensembl gene ID').isNotNull())
+    .withColumn('targetId', pf.split(pf.col('targetId'), '; '))
+    .withColumn('targetId', pf.explode('targetId'))
+    .filter(pf.col('targetId').isNotNull())
 )
 
 # OT platform: Filter only protein coding targets.
 coding_targets = (
     ot_datasets['targets']
     .filter(pf.col('bioType') == 'protein_coding')
-    .select(pf.col('id').alias('Ensembl gene ID'))
+    .select(pf.col('id').alias('targetId'))
     .distinct()
 )
 
@@ -39,8 +43,21 @@ genetic_diseases = (
     ot_datasets['diseases']
     .withColumn('therapeuticArea', pf.explode('therapeuticAreas'))
     .filter(pf.col('therapeuticArea') == 'OTAR_0000018')
-    .select('id')
+    .select(pf.col('id').alias('diseaseId'))
     .distinct()
+)
+
+# OT associations: Only retain target-disease associations which fit all of the criteria:
+relevant_associations = (
+    ot_datasets['associationByDatatypeDirect']
+    # 1. Only consider genetic association evidence
+    .filter(pf.col('datatypeId') == 'genetic_association')
+    # 2. Only consider evidence with a score above the threshold
+    .filter(pf.col('datatypeHarmonicScore') >= args.association_threshold)
+    # 3. Only consider inherited/genetic diseases
+    .join(genetic_diseases, on='diseaseId', how='inner')
+    # 4. Only consider protein coding targets
+    .join(coding_targets, on='targetId', how='inner')
 )
 
 # Load and process the upstream targets.
@@ -50,13 +67,13 @@ upstream_targets = spark.read.csv(args.upstream_targets, header=True)
 upstream_targets_mapped = (
     upstream_targets
     .join(uniprot_ensembl_mapping, on='UniProt', how='inner')
-    .filter(pf.col('Ensembl gene ID').isNotNull())
+    .filter(pf.col('targetId').isNotNull())
 )
 
 # Only retain the targets which are protein coding according to OT target index.
 upstream_targets_coding = (
     upstream_targets_mapped
-    .join(coding_targets, on='Ensembl gene ID', how='inner')
+    .join(coding_targets, on='targetId', how='inner')
 )
 
 print(f"""
@@ -66,6 +83,8 @@ Total OT targets: {ot_datasets['targets'].count():,}
   Of them, protein coding: {coding_targets.count():,}
 Total OT diseases: {ot_datasets['diseases'].count():,}
   Of them, genetic diseases: {genetic_diseases.count():,}
+Total OT direct associations by datatype: {ot_datasets['associationByDatatypeDirect'].count():,}
+  Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): {relevant_associations.count():,}
 
 Successive filtering of upstream targets:
 - On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
