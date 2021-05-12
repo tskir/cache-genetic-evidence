@@ -58,6 +58,7 @@ relevant_associations = (
     .join(genetic_diseases, on='diseaseId', how='inner')
     # 4. Only consider protein coding targets
     .join(coding_targets, on='targetId', how='inner')
+    .select('targetId', 'diseaseId', 'diseaseLabel')
 )
 
 # Load and process the upstream targets.
@@ -76,18 +77,28 @@ upstream_targets_coding = (
     .join(coding_targets, on='targetId', how='inner')
 )
 
+# Only retain the targets which have relevant OT associations.
+upstream_targets_associated = (
+    upstream_targets_coding
+    .join(relevant_associations, on='targetId', how='inner')
+)
+
 print(f"""
+### Identifier mapping statistics
 Total UniProt AC → Ensembl gene ID mappings: {uniprot_ensembl_mapping.count():,}
 
-Total OT targets: {ot_datasets['targets'].count():,}
-  Of them, protein coding: {coding_targets.count():,}
-Total OT diseases: {ot_datasets['diseases'].count():,}
-  Of them, genetic diseases: {genetic_diseases.count():,}
-Total OT direct associations by datatype: {ot_datasets['associationByDatatypeDirect'].count():,}
-  Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): {relevant_associations.count():,}
+### Open Targets data statistics
+* Total OT targets: {ot_datasets['targets'].count():,}
+  + Of them, protein coding: {coding_targets.count():,}
+* Total OT diseases: {ot_datasets['diseases'].count():,}
+  + Of them, genetic diseases: {genetic_diseases.count():,}
+* Total OT direct associations by datatype: {ot_datasets['associationByDatatypeDirect'].count():,}
+  + Of them, fitting all criteria (genetic association, good score, coding target, genetic disease): {relevant_associations.count():,}
 
-Successive filtering of upstream targets:
-- On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
-- Mapped to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
-- Present in the OT target index as protein coding: {upstream_targets_coding.select('UniProt').distinct().count():,} distinct ({upstream_targets_coding.count():,} total)
+### Upstream target list filtering
+This is performed in a successive manner (one step after the other):
+* On load: {upstream_targets.select('UniProt').distinct().count():,} distinct ({upstream_targets.count():,} total)
+* Mapped to Ensembl gene IDs: {upstream_targets_mapped.select('UniProt').distinct().count():,} distinct ({upstream_targets_mapped.count():,} total)
+* Present in the OT target index as protein coding: {upstream_targets_coding.select('UniProt').distinct().count():,} distinct ({upstream_targets_coding.count():,} total)
+* Have good OT associations: {upstream_targets_associated.select('UniProt').distinct().count():,} distinct ({upstream_targets_associated.count():,} total)
 """)
